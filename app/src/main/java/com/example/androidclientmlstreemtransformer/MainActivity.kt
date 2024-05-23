@@ -74,33 +74,26 @@ class MainActivity : AppCompatActivity() {
                     .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                     .build()
                 imageAnalysis.setAnalyzer(
-                    ContextCompat.getMainExecutor(this@MainActivity)
+                    ContextCompat.getMainExecutor(this)
                 ) { image ->
                     val img = image.image
-                    val bitmap = translator.translateYUV(img!!, this@MainActivity)
-//                    val size = bitmap.width * bitmap.height
-//                    val pixels = IntArray(size)
-//                    bitmap.getPixels(
-//                        pixels, 0, bitmap.width, 0, 0,
-//                        bitmap.width, bitmap.height
-//                    )
-//                    for (i in 0 until size) {
-//                        val color = pixels[i]
-//                        val r = color shr 16 and 0xff
-//                        val g = color shr 8 and 0xff
-//                        val b = color and 0xff
-//                        val gray = (r + g + b) / 3
-//                        pixels[i] = -0x1000000 or (gray shl 16) or (gray shl 8) or gray
-//                    }
-//                    bitmap.setPixels(
-//                        pixels, 0, bitmap.width, 0, 0,
-//                        bitmap.width, bitmap.height
-//                    )
-                    preview!!.rotation = image.imageInfo.rotationDegrees.toFloat()
-                    preview!!.setImageBitmap(bitmap)
+                    val bitmap = translator.translateYUV(img!!, this)
+                    val size = bitmap.width * bitmap.height
+                    val pixels = IntArray(size)
+                    bitmap.getPixels(
+                        pixels, 0, bitmap.width, 0, 0,
+                        bitmap.width, bitmap.height
+                    )
+
+                    bitmap.setPixels(
+                        pixels, 0, bitmap.width, 0, 0,
+                        bitmap.width, bitmap.height
+                    )
+                    preview.rotation = image.imageInfo.rotationDegrees.toFloat()
+                    preview.setImageBitmap(bitmap)
                     image.close()
                 }
-                cameraProvider.bindToLifecycle(this@MainActivity, cameraSelector, imageAnalysis)
+                cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis)
             } catch (e: ExecutionException) {
                 e.printStackTrace()
             } catch (e: InterruptedException) {

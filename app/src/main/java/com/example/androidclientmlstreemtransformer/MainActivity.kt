@@ -1,20 +1,26 @@
 package com.example.androidclientmlstreemtransformer
 
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.ImageView
-import androidx.core.content.ContextCompat
-import android.Manifest
+import android.util.Log
 import android.util.Size
+import android.widget.ImageView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.app.ActivityCompat
-import com.arhiser.photoappmin.YUVtoRGB
+import androidx.core.content.ContextCompat
 import com.google.common.util.concurrent.ListenableFuture
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.WebSocket
+import java.io.File
+import java.security.SecureRandom
+import java.security.cert.CertificateException
+import java.security.cert.X509Certificate
 import java.util.concurrent.ExecutionException
+import javax.net.ssl.*
+
 
 class MainActivity : AppCompatActivity() {
     private val PERMISSION_REQUEST_CAMERA = 89045
@@ -23,26 +29,52 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
 
-    var translator = YUVtoRGB()
+    private val translator = YUVtoRGB()
 
+//    private val okHttpClient = getUnsafeOkHttpClient()
+    private val okHttpClient = OkHttpClient()
+
+    private lateinit var wsListener : WebSocketListener
+
+    private lateinit var webSocket : WebSocket
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val dexOutputDir: File = codeCacheDir
+        dexOutputDir.setReadOnly()
         setContentView(R.layout.activity_main)
 
-        preview = findViewById(R.id.preview)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.CAMERA),
-                PERMISSION_REQUEST_CAMERA
-            )
+        wsListener = WebSocketListener()
 
-        }
-        else{
-            initializeCamera();
-        }
+        webSocket = okHttpClient.newWebSocket(createRequest(), wsListener)
+
+        Log.e("WS", ""+webSocket)
+
+
+        webSocket.send("fffg")
+
+
+//        preview = findViewById(R.id.preview)
+//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+//            != PackageManager.PERMISSION_GRANTED
+//        ) {
+//            ActivityCompat.requestPermissions(
+//                this, arrayOf(Manifest.permission.CAMERA),
+//                PERMISSION_REQUEST_CAMERA
+//            )
+//
+//        }
+//        else{
+//            initializeCamera()
+//        }
+    }
+
+    private fun createRequest(): Request {
+//            val wsUrl = "wss://free.blr2.piesocket.com/v3/1?api_key=Yd2mlnVXl5VFcIquYbqOvyt7ckkLoIi5nAy5F4Hq&notify_self=1"
+        val wsUrl = "ws://10.0.2.2:8000/ws"
+        return Request.Builder()
+            .url(wsUrl)
+            .build()
     }
 
     override fun onRequestPermissionsResult(
@@ -100,5 +132,46 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }, ContextCompat.getMainExecutor(this))
+
+    }
+
+    private fun getUnsafeOkHttpClient(): OkHttpClient? {
+
+            // Create a trust manager that does not validate certificate chains
+            val trustAllCerts = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    @Throws(CertificateException::class)
+                    override fun checkClientTrusted(
+                        chain: Array<X509Certificate?>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    @Throws(CertificateException::class)
+                    override fun checkServerTrusted(
+                        chain: Array<X509Certificate?>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun getAcceptedIssuers(): Array<X509Certificate?>? {
+                        return arrayOf()
+                    }
+                }
+            )
+
+            // Install the all-trusting trust manager
+            val sslContext = SSLContext.getInstance("SSL")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+            // Create an ssl socket factory with our all-trusting manager
+            val sslSocketFactory = sslContext.socketFactory
+            val builder = OkHttpClient.Builder()
+            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
+            builder.hostnameVerifier(HostnameVerifier { hostname, session -> true })
+
+            return  builder.build()
+    }
+    override fun onDestroy() {
+        super.onDestroy()
     }
 }

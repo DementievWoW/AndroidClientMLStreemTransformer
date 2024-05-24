@@ -1,4 +1,4 @@
-package com.arhiser.photoappmin
+package com.example.androidclientmlstreemtransformer
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -42,15 +42,19 @@ class YUVtoRGB {
         var channelOffset = 0
         var outputStride = 0
         for (planeIndex in 0..2) {
-            if (planeIndex == 0) {
-                channelOffset = 0
-                outputStride = 1
-            } else if (planeIndex == 1) {
-                channelOffset = width * height + 1
-                outputStride = 2
-            } else if (planeIndex == 2) {
-                channelOffset = width * height
-                outputStride = 2
+            when (planeIndex) {
+                0 -> {
+                    channelOffset = 0
+                    outputStride = 1
+                }
+                1 -> {
+                    channelOffset = width * height + 1
+                    outputStride = 2
+                }
+                2 -> {
+                    channelOffset = width * height
+                    outputStride = 2
+                }
             }
             val buffer = planes[planeIndex].buffer
             val rowStride = planes[planeIndex].rowStride

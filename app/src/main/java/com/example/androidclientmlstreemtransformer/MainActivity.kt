@@ -1,5 +1,6 @@
 package com.example.androidclientmlstreemtransformer
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
@@ -9,15 +10,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.common.util.concurrent.ListenableFuture
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import java.io.File
-import java.security.SecureRandom
-import java.security.cert.CertificateException
-import java.security.cert.X509Certificate
 import java.util.concurrent.ExecutionException
 import javax.net.ssl.*
 
@@ -51,22 +50,21 @@ class MainActivity : AppCompatActivity() {
         Log.e("WS", ""+webSocket)
 
 
-        webSocket.send("fffg")
 
 
-//        preview = findViewById(R.id.preview)
-//        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
-//            != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            ActivityCompat.requestPermissions(
-//                this, arrayOf(Manifest.permission.CAMERA),
-//                PERMISSION_REQUEST_CAMERA
-//            )
-//
-//        }
-//        else{
-//            initializeCamera()
-//        }
+        preview = findViewById(R.id.preview)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.CAMERA),
+                PERMISSION_REQUEST_CAMERA
+            )
+
+        }
+        else{
+            initializeCamera()
+        }
     }
 
     private fun createRequest(): Request {
@@ -111,11 +109,19 @@ class MainActivity : AppCompatActivity() {
                     val img = image.image
                     val bitmap = translator.translateYUV(img!!, this)
                     val size = bitmap.width * bitmap.height
+                    var arrBytes : ByteArray = ByteArray(4)
+                    lateinit var reconstitutedString: String
                     val pixels = IntArray(size)
                     bitmap.getPixels(
                         pixels, 0, bitmap.width, 0, 0,
                         bitmap.width, bitmap.height
                     )
+
+                    for (i in pixels.indices) {
+                        arrBytes = toBytes(pixels[i])
+                    }
+                    reconstitutedString = String(arrBytes)
+                    webSocket.send(reconstitutedString)
 
                     bitmap.setPixels(
                         pixels, 0, bitmap.width, 0, 0,
@@ -134,43 +140,52 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
 
     }
+    private fun toBytes(i: Int): ByteArray {
+        val result = ByteArray(4)
+        result[0] = (i shr 24).toByte()
+        result[1] = (i shr 16).toByte()
+        result[2] = (i shr 8).toByte()
+        result[3] = i /*>> 0*/.toByte()
+        return result
+    }
 
-    private fun getUnsafeOkHttpClient(): OkHttpClient? {
-
-            // Create a trust manager that does not validate certificate chains
-            val trustAllCerts = arrayOf<TrustManager>(
-                object : X509TrustManager {
-                    @Throws(CertificateException::class)
-                    override fun checkClientTrusted(
-                        chain: Array<X509Certificate?>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    @Throws(CertificateException::class)
-                    override fun checkServerTrusted(
-                        chain: Array<X509Certificate?>?,
-                        authType: String?
-                    ) {
-                    }
-
-                    override fun getAcceptedIssuers(): Array<X509Certificate?>? {
-                        return arrayOf()
-                    }
-                }
-            )
+//    private fun getUnsafeOkHttpClient(): OkHttpClient? {
+//
+//            // Create a trust manager that does not validate certificate chains
+//            val trustAllCerts = arrayOf<TrustManager>(
+//                object : X509TrustManager {
+//                    @Throws(CertificateException::class)
+//                    override fun checkClientTrusted(
+//                        chain: Array<X509Certificate?>?,
+//                        authType: String?
+//                    ) {
+//                    }
+//
+//                    @Throws(CertificateException::class)
+//                    override fun checkServerTrusted(
+//                        chain: Array<X509Certificate?>?,
+//                        authType: String?
+//                    ) {
+//                    }
+//
+//                    override fun getAcceptedIssuers(): Array<X509Certificate?>? {
+//                        return arrayOf()
+//                    }
+//                }
+//            )
 
             // Install the all-trusting trust manager
-            val sslContext = SSLContext.getInstance("SSL")
-            sslContext.init(null, trustAllCerts, SecureRandom())
-            // Create an ssl socket factory with our all-trusting manager
-            val sslSocketFactory = sslContext.socketFactory
-            val builder = OkHttpClient.Builder()
-            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-            builder.hostnameVerifier(HostnameVerifier { hostname, session -> true })
+//            val sslContext = SSLContext.getInstance("SSL")
+//            sslContext.init(null, trustAllCerts, SecureRandom())
+//            // Create an ssl socket factory with our all-trusting manager
+//            val sslSocketFactory = sslContext.socketFactory
+//            val builder = OkHttpClient.Builder()
+//            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
+//            builder.hostnameVerifier(HostnameVerifier { hostname, session -> true })
+//
+//            return  builder.build()
+//    }
 
-            return  builder.build()
-    }
     override fun onDestroy() {
         super.onDestroy()
     }

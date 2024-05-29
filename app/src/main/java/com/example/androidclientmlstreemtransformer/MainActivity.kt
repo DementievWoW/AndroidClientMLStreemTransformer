@@ -2,7 +2,10 @@ package com.example.androidclientmlstreemtransformer
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.util.Size
 import android.widget.ImageView
@@ -16,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.ExecutionException
 import javax.net.ssl.*
@@ -45,12 +49,9 @@ class MainActivity : AppCompatActivity() {
 
         wsListener = WebSocketListener()
 
-        webSocket = okHttpClient.newWebSocket(createRequest(), wsListener)
-
+//        webSocket = okHttpClient.newWebSocket(createRequest(bitmap.height, bitmap.width), wsListener)
+        webSocket = okHttpClient.newWebSocket(createRequest(1,1), wsListener)
         Log.e("WS", ""+webSocket)
-
-
-
 
         preview = findViewById(R.id.preview)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -67,9 +68,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun createRequest(): Request {
+    private fun createRequest(height : Int, width : Int): Request {
 //            val wsUrl = "wss://free.blr2.piesocket.com/v3/1?api_key=Yd2mlnVXl5VFcIquYbqOvyt7ckkLoIi5nAy5F4Hq&notify_self=1"
-        val wsUrl = "ws://10.0.2.2:8000/ws"
+
+//        val wsUrl = "ws://192.168.42.155:8000/ws"
+        val wsUrl = "ws://192.168.0.45:8000/ws/?height=$height&width=$width"
+//        val wsUrl = "ws://192.168.0.45:8000/ws/"
+//        val wsUrl = "ws://10.0.2.2:8000/ws"
         return Request.Builder()
             .url(wsUrl)
             .build()
@@ -92,7 +97,6 @@ class MainActivity : AppCompatActivity() {
         cameraProviderFuture.addListener({
             try {
                 val cameraProvider = cameraProviderFuture.get()
-
                 //Preview preview = new Preview.Builder().build();
 
                 //ImageCapture imageCapture = new ImageCapture.Builder().build();
@@ -100,37 +104,49 @@ class MainActivity : AppCompatActivity() {
                     .setTargetResolution(Size(1024, 768))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
+
                 val cameraSelector = CameraSelector.Builder()
                     .requireLensFacing(CameraSelector.LENS_FACING_BACK)
                     .build()
+
                 imageAnalysis.setAnalyzer(
                     ContextCompat.getMainExecutor(this)
                 ) { image ->
+                    Log.e("4", "4")
                     val img = image.image
                     val bitmap = translator.translateYUV(img!!, this)
                     val size = bitmap.width * bitmap.height
-                    var arrBytes : ByteArray = ByteArray(4)
-                    lateinit var reconstitutedString: String
                     val pixels = IntArray(size)
+
                     bitmap.getPixels(
                         pixels, 0, bitmap.width, 0, 0,
                         bitmap.width, bitmap.height
                     )
 
-                    for (i in pixels.indices) {
-                        arrBytes = toBytes(pixels[i])
-                    }
-                    reconstitutedString = String(arrBytes)
-                    webSocket.send(reconstitutedString)
 
-                    bitmap.setPixels(
-                        pixels, 0, bitmap.width, 0, 0,
-                        bitmap.width, bitmap.height
-                    )
+                    Log.e("bitmap", java.lang.StringBuilder().append(bitmap).toString())
+                    Log.e("pixels", java.lang.StringBuilder().append(pixels).toString())
+                    Log.e("bitmap.height", java.lang.StringBuilder().append(bitmap.height).toString())
+                    Log.e("bitmap.width", java.lang.StringBuilder().append(bitmap.width).toString())
+                    Log.e("pixels.size", java.lang.StringBuilder().append(pixels.size).toString())
+
+                    var bitmapString = bitmap.toByteString()
+                    var StringBitmap = bitmapString.toBitmap()
+
+
+                    Log.e("bitmap.toByteString()", bitmap.toByteString())
+
+                    webSocket.send(bitmapString)
+//                    bitmap.setPixels(
+//                        tmp3, 0, bitmap.width, 0, 0,
+//                        bitmap.width, bitmap.height
+//                    )
                     preview.rotation = image.imageInfo.rotationDegrees.toFloat()
-                    preview.setImageBitmap(bitmap)
+                    preview.setImageBitmap(StringBitmap)
                     image.close()
                 }
+
+
                 cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis)
             } catch (e: ExecutionException) {
                 e.printStackTrace()
@@ -139,6 +155,22 @@ class MainActivity : AppCompatActivity() {
             }
         }, ContextCompat.getMainExecutor(this))
 
+    }
+    private fun Bitmap.toByteString(): String {
+        val baos = ByteArrayOutputStream()
+        this.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+        val b = baos.toByteArray()
+        return Base64.encodeToString(b, Base64.DEFAULT)
+    }
+    fun String.toBitmap(): Bitmap? {
+        return try {
+            val encodeByte: ByteArray =
+                Base64.decode(this, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size)
+        } catch (e: Exception) {
+            e.message
+            return null
+        }
     }
     private fun toBytes(i: Int): ByteArray {
         val result = ByteArray(4)

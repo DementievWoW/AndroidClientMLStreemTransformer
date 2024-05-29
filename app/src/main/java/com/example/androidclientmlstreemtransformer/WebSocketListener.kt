@@ -8,7 +8,6 @@ import okio.ByteString
 class WebSocketListener : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
         super.onOpen(webSocket, response)
-        webSocket.send("ffg")
         Log.e("wsConnected", "connected")
     }
 

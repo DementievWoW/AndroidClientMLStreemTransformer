@@ -19,6 +19,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
+import okio.ByteString
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.concurrent.ExecutionException
@@ -130,19 +131,31 @@ class MainActivity : AppCompatActivity() {
                     Log.e("bitmap.width", java.lang.StringBuilder().append(bitmap.width).toString())
                     Log.e("pixels.size", java.lang.StringBuilder().append(pixels.size).toString())
 
-                    var bitmapString = bitmap.toByteString()
-                    var StringBitmap = bitmapString.toBitmap()
+//                    var bitmapString = bitmap.toByteString()
+//                    var stringBitmap = bitmapString.toBitmap()
 
 
-                    Log.e("bitmap.toByteString()", bitmap.toByteString())
+//                    Log.e("stringBitmap", "$stringBitmap")
+                    webSocket.send(bitmap.toByteString())
 
-                    webSocket.send(bitmapString)
+
+                    var byteString : ByteString? = wsListener.liveDataByteString.value
+
+//                    Log.e("byteString",java.lang.StringBuilder().append(byteString).toString())
+                    var newBitmap : Bitmap? = byteString?.base64()?.toBitmap()
+//                    Log.e("tmp",java.lang.StringBuilder().append(tmp).toString())
+//                    Log.e("newBitmap",java.lang.StringBuilder().append(newBitmap).toString())
+
+//                    Log.e("wsListener.liveData","")
+//                    Log.e("StringBytes",java.lang.StringBuilder().append(byteString).toString())
+////                    var StringBitmap = wsListener.liveDataByteString.value?.toBitmap()
+
 //                    bitmap.setPixels(
 //                        tmp3, 0, bitmap.width, 0, 0,
 //                        bitmap.width, bitmap.height
 //                    )
                     preview.rotation = image.imageInfo.rotationDegrees.toFloat()
-                    preview.setImageBitmap(StringBitmap)
+                    preview.setImageBitmap(newBitmap)
                     image.close()
                 }
 
@@ -158,67 +171,42 @@ class MainActivity : AppCompatActivity() {
     }
     private fun Bitmap.toByteString(): String {
         val baos = ByteArrayOutputStream()
-        this.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+        this.compress(Bitmap.CompressFormat.JPEG, 40, baos)
         val b = baos.toByteArray()
         return Base64.encodeToString(b, Base64.DEFAULT)
     }
+
+
     fun String.toBitmap(): Bitmap? {
         return try {
+//            Log.e("String.toBitmap().this",java.lang.StringBuilder().append(this).toString())
             val encodeByte: ByteArray =
                 Base64.decode(this, Base64.DEFAULT)
+//            Log.e("String.toBitmap().encodeByte",java.lang.StringBuilder().append(encodeByte).toString())
             BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size)
         } catch (e: Exception) {
-            e.message
+            Log.e("String.toBitmap()",java.lang.StringBuilder().append(e.message).toString())
+
             return null
         }
     }
-    private fun toBytes(i: Int): ByteArray {
-        val result = ByteArray(4)
-        result[0] = (i shr 24).toByte()
-        result[1] = (i shr 16).toByte()
-        result[2] = (i shr 8).toByte()
-        result[3] = i /*>> 0*/.toByte()
-        return result
-    }
-
-//    private fun getUnsafeOkHttpClient(): OkHttpClient? {
+//    private fun ByteString?.toBitmap(): Bitmap? {
+//        return try {
 //
-//            // Create a trust manager that does not validate certificate chains
-//            val trustAllCerts = arrayOf<TrustManager>(
-//                object : X509TrustManager {
-//                    @Throws(CertificateException::class)
-//                    override fun checkClientTrusted(
-//                        chain: Array<X509Certificate?>?,
-//                        authType: String?
-//                    ) {
-//                    }
+//            var tmp = Base64.encode(this?.base64(), Base64.DEFAULT)
+//            val encodeByte: ByteArray =
 //
-//                    @Throws(CertificateException::class)
-//                    override fun checkServerTrusted(
-//                        chain: Array<X509Certificate?>?,
-//                        authType: String?
-//                    ) {
-//                    }
-//
-//                    override fun getAcceptedIssuers(): Array<X509Certificate?>? {
-//                        return arrayOf()
-//                    }
-//                }
-//            )
-
-            // Install the all-trusting trust manager
-//            val sslContext = SSLContext.getInstance("SSL")
-//            sslContext.init(null, trustAllCerts, SecureRandom())
-//            // Create an ssl socket factory with our all-trusting manager
-//            val sslSocketFactory = sslContext.socketFactory
-//            val builder = OkHttpClient.Builder()
-//            builder.sslSocketFactory(sslSocketFactory, trustAllCerts[0] as X509TrustManager)
-//            builder.hostnameVerifier(HostnameVerifier { hostname, session -> true })
-//
-//            return  builder.build()
+//                Base64.decode()
+//            Log.e("this?.base64()",java.lang.StringBuilder().append(this?.base64()).toString())
+//            BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size)
+//        } catch (e: Exception) {
+//            Log.e("ByteString?.toBitmap()",java.lang.StringBuilder().append(e.message).toString())
+//            return null
+//        }
 //    }
-
     override fun onDestroy() {
         super.onDestroy()
     }
 }
+
+

@@ -2,10 +2,9 @@ package com.example.androidclientmlstreemtransformer
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.*
+import android.media.Image
 import android.os.Bundle
-import android.util.Base64
 import android.util.Log
 import android.util.Size
 import android.widget.ImageView
@@ -20,8 +19,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import okio.ByteString
+import okio.ByteString.Companion.toByteString
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.ByteBuffer
 import java.util.concurrent.ExecutionException
 import javax.net.ssl.*
 
@@ -114,48 +115,57 @@ class MainActivity : AppCompatActivity() {
                     ContextCompat.getMainExecutor(this)
                 ) { image ->
                     Log.e("4", "4")
-                    val img = image.image
-                    val bitmap = translator.translateYUV(img!!, this)
-                    val size = bitmap.width * bitmap.height
-                    val pixels = IntArray(size)
 
-                    bitmap.getPixels(
-                        pixels, 0, bitmap.width, 0, 0,
-                        bitmap.width, bitmap.height
-                    )
-
-
-                    Log.e("bitmap", java.lang.StringBuilder().append(bitmap).toString())
-                    Log.e("pixels", java.lang.StringBuilder().append(pixels).toString())
-                    Log.e("bitmap.height", java.lang.StringBuilder().append(bitmap.height).toString())
-                    Log.e("bitmap.width", java.lang.StringBuilder().append(bitmap.width).toString())
-                    Log.e("pixels.size", java.lang.StringBuilder().append(pixels.size).toString())
-
-//                    var bitmapString = bitmap.toByteString()
-//                    var stringBitmap = bitmapString.toBitmap()
-
-
-//                    Log.e("stringBitmap", "$stringBitmap")
-                    webSocket.send(bitmap.toByteString())
-
-
-                    var byteString : ByteString? = wsListener.liveDataByteString.value
-
-//                    Log.e("byteString",java.lang.StringBuilder().append(byteString).toString())
-                    var newBitmap : Bitmap? = byteString?.base64()?.toBitmap()
-//                    Log.e("tmp",java.lang.StringBuilder().append(tmp).toString())
-//                    Log.e("newBitmap",java.lang.StringBuilder().append(newBitmap).toString())
-
-//                    Log.e("wsListener.liveData","")
-//                    Log.e("StringBytes",java.lang.StringBuilder().append(byteString).toString())
-////                    var StringBitmap = wsListener.liveDataByteString.value?.toBitmap()
-
-//                    bitmap.setPixels(
-//                        tmp3, 0, bitmap.width, 0, 0,
+                    val byteString = image.image?.toByteString()
+                    if (byteString != null) {
+                        webSocket.send(byteString)
+                    }
+                    byteString?.toBitmap()
+//                    val bitmap = translator.translateYUV(img!!, this)
+//                    val size = bitmap.rowBytes * bitmap.height
+//                    val pixels = IntArray(size)
+//
+//                    bitmap.getPixels(
+//                        pixels, 0, bitmap.width, 0, 0,
 //                        bitmap.width, bitmap.height
 //                    )
+//
+//
+//                    Log.e("bitmap", java.lang.StringBuilder().append(bitmap).toString())
+//                    Log.e("size", java.lang.StringBuilder().append(size).toString())
+//                    Log.e("bitmap.height", java.lang.StringBuilder().append(bitmap.height).toString())
+//                    Log.e("bitmap.width", java.lang.StringBuilder().append(bitmap.width).toString())
+//                    Log.e("pixels.size", java.lang.StringBuilder().append(pixels.size).toString())
+//
+////                    var bitmapString = bitmap.toByteString()
+////                    var stringBitmap = bitmapString.toBitmap()
+//
+////                    Log.e("stringBitmap", "$stringBitmap")
+////                    webSocket.send(bitmap.toByteString())
+//                    var bitmapString = bitmap.toByteString(size = size)
+////                    webSocket.send(tmp)
+//                    Log.e("bitmapString","$bitmapString")
+//                    bitmapString.toBitmap(bitmap)
+//                    Log.e("bool",wsListener._liveDataByteString.toString())
+//                    Log.e("bool",bitmapString.toBitmap(bitmap).toString())
+//                    Log.e("bool",wsListener._liveDataByteString?.toBitmap(bitmap).toString())
+////                    Log.e("tmp",java.lang.StringBuilder().append(tmp).toString())
+////                    Log.e("newBitmap",java.lang.StringBuilder().append(newBitmap).toString())
+//
+////                    Log.e("wsListener.liveData","")
+////                    Log.e("StringBytes",java.lang.StringBuilder().append(byteString).toString())
+//////                    var StringBitmap = wsListener.liveDataByteString.value?.toBitmap()
+//
+////                    bitmap.setPixels(
+////                        tmp3, 0, bitmap.width, 0, 0,
+////                        bitmap.width, bitmap.height
+////                    )
+
                     preview.rotation = image.imageInfo.rotationDegrees.toFloat()
-                    preview.setImageBitmap(newBitmap)
+//                    preview.setImageBitmap(bitmap)
+
+//                    preview.setImageBitmap(byteString?.toBitmap() ?: image.image?.toBitmap())
+                    preview.setImageBitmap(byteString?.toBitmap())
                     image.close()
                 }
 
@@ -169,21 +179,85 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
 
     }
-    private fun Bitmap.toByteString(): String {
-        val baos = ByteArrayOutputStream()
-        this.compress(Bitmap.CompressFormat.JPEG, 40, baos)
-        val b = baos.toByteArray()
-        return Base64.encodeToString(b, Base64.DEFAULT)
+
+//    private fun Bitmap.toByteString(size: Int): ByteString {
+//        Log.e("Bitmap.toByteString", "$size")
+//        var buffer = ByteBuffer.allocate(size)
+//        this.copyPixelsToBuffer(buffer)
+//        Log.e("Bitmap.toByteString", "$buffer")
+//        return buffer.toByteString()
+////        val baos = ByteArrayOutputStream()
+////        this.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+////        val b = baos.toByteArray()
+////        return b.toByteString()
+//    }
+
+
+//    private fun Bitmap.toByteString(): String {
+//        val baos = ByteArrayOutputStream()
+//        this.compress(Bitmap.CompressFormat.JPEG, 40, baos)
+//        val b = baos.toByteArray()
+//        return Base64.encodeToString(b, Base64.DEFAULT)
+//    }
+private fun Image.toByteString(): ByteString? {
+    val planes: Array<Image.Plane> = this.planes
+    val yBuffer: ByteBuffer = planes[0].buffer
+    val uBuffer: ByteBuffer = planes[1].buffer
+    val vBuffer: ByteBuffer = planes[2].buffer
+    val ySize = yBuffer.remaining()
+    val uSize = uBuffer.remaining()
+    val vSize = vBuffer.remaining()
+    val nv21 = ByteArray(ySize + uSize + vSize)
+    //U and V are swapped
+    yBuffer[nv21, 0, ySize]
+    vBuffer[nv21, ySize, vSize]
+    uBuffer[nv21, ySize + vSize, uSize]
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 75, out)
+    val imageBytes = out.toByteArray()
+    return imageBytes.toByteString()
+}
+    private fun Image.toBitmap(): Bitmap? {
+        val planes: Array<Image.Plane> = this.planes
+        val yBuffer: ByteBuffer = planes[0].buffer
+        val uBuffer: ByteBuffer = planes[1].buffer
+        val vBuffer: ByteBuffer = planes[2].buffer
+        val ySize = yBuffer.remaining()
+        val uSize = uBuffer.remaining()
+        val vSize = vBuffer.remaining()
+        val nv21 = ByteArray(ySize + uSize + vSize)
+        //U and V are swapped
+        yBuffer[nv21, 0, ySize]
+        vBuffer[nv21, ySize, vSize]
+        uBuffer[nv21, ySize + vSize, uSize]
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, this.width, this.height, null)
+        val out = ByteArrayOutputStream()
+        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 75, out)
+        val imageBytes = out.toByteArray()
+        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
     }
-
-
-    fun String.toBitmap(): Bitmap? {
+    fun ByteString.toBitmap(bitmap : Bitmap): Boolean {
         return try {
-//            Log.e("String.toBitmap().this",java.lang.StringBuilder().append(this).toString())
-            val encodeByte: ByteArray =
-                Base64.decode(this, Base64.DEFAULT)
+//            this.toByteArray()
+            var tmp = this.asByteBuffer()
+            Log.e("String.toBitmap().this",java.lang.StringBuilder().append(this).toString())
+            Log.e("String.toBitmap().byteBuffer",java.lang.StringBuilder().append(this).toString())
+            bitmap.copyPixelsFromBuffer(tmp)
+            true
+//            val encodeByte: ByteArray =
+//                Base64.decode(this, Base64.DEFAULT)
 //            Log.e("String.toBitmap().encodeByte",java.lang.StringBuilder().append(encodeByte).toString())
-            BitmapFactory.decodeByteArray(encodeByte, 0, encodeByte.size)
+        } catch (e: Exception) {
+            Log.e("String.toBitmap()",java.lang.StringBuilder().append(e.message).toString())
+
+            return false
+        }
+    }
+    fun ByteString.toBitmap(): Bitmap? {
+        return try {
+
+            BitmapFactory.decodeByteArray(this.toByteArray(), 0, this.toByteArray().size)
         } catch (e: Exception) {
             Log.e("String.toBitmap()",java.lang.StringBuilder().append(e.message).toString())
 
@@ -208,5 +282,6 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 }
+
 
 

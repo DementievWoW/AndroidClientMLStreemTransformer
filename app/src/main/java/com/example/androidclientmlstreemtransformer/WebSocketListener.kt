@@ -11,8 +11,8 @@ class WebSocketListener : WebSocketListener() {
     private val _liveDataText = MutableLiveData<String>()
     val liveDataText: LiveData<String> = _liveDataText
 
-    private val _liveDataByteString = MutableLiveData<ByteString>()
-    val liveDataByteString: LiveData<ByteString> = _liveDataByteString
+    internal var  _liveDataByteString : ByteString? = null
+//    val liveDataByteString: LiveData<ByteString> = _liveDataByteString
 
     // Overridden methods
 
@@ -31,15 +31,15 @@ class WebSocketListener : WebSocketListener() {
     override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
         super.onMessage(webSocket, bytes)
 //        Log.e("onBytes", java.lang.StringBuilder().append(bytes).toString())
-        onReceiveBytes(bytes)
+        _liveDataByteString = bytes
     }
 
     private fun onReceiveText(string : String){
         _liveDataText.postValue(string)
     }
-    private fun onReceiveBytes(bytes : ByteString  ){
-        _liveDataByteString.postValue(bytes)
-    }
+//    private fun onReceiveBytes(bytes : ByteString  ){
+//        _liveDataByteString.postValue(bytes)
+//    }
 
 //    override fun onMessage(webSocket: WebSocket, text: String) {
 //        super.onMessage(webSocket, text)
